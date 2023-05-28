@@ -11,3 +11,7 @@ migration-up:
 .PHONY: migration-down
 migration-down:
 	goose -dir "./migrations" postgres "user=postgres password=postgres dbname=postgres host=localhost port=5432" down
+
+.PHONY: proto
+proto:
+	protoc --go_out=internal/app/service --go-grpc_out=internal/app/service --proto_path=proto proto/service.proto

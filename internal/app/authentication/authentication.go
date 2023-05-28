@@ -1,5 +1,16 @@
 package authentication
 
-func Auth() {
+import (
+	"context"
+	"google.golang.org/grpc"
+)
 
+func Auth(
+	ctx context.Context,
+	req interface{},
+	info *grpc.UnaryServerInfo,
+	handler grpc.UnaryHandler) (resp interface{}, err error) {
+
+	handler(ctx, req)
+	return nil, nil
 }
