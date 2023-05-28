@@ -1,13 +1,13 @@
 package main
 
-import (
-	"google.golang.org/grpc"
-	"pr1/internal/app/authentication"
-)
-
 func main() {
-	_ = grpc.NewServer(
-		grpc.UnaryInterceptor(authentication.Auth),
-	)
+	//ctx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
+	//
+	//_ = repository.NewUrlPostgresRepo(ctx)
+	//
+	//_ = grpc.NewServer(
+	//	grpc.UnaryInterceptor(authentication.Auth),
+	//)
 
 }
