@@ -18,7 +18,7 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// ShortenerUrlClient is the client API for ShortenerUrl service.
+// ShortenerUrlClient is the grpc_client API for ShortenerUrl service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ShortenerUrlClient interface {

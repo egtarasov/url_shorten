@@ -28,11 +28,11 @@ func NewUrlPostgresRepo(ctx context.Context) UrlRepo {
 	return &urlPostgresRepo{pool: pool}
 }
 
-func (u *urlPostgresRepo) GetUrl(ctx context.Context, shortenUrl string) (*Url, error) {
+func (u *urlPostgresRepo) GetUrl(ctx context.Context, token string) (*Url, error) {
 	var url string
 	var expirationTime time.Time
 	err := u.pool.
-		QueryRow(ctx, "SELECT Url, expire_at FROM public.urls WHERE shorten_url = $1", shortenUrl).
+		QueryRow(ctx, "SELECT Url, expire_at FROM public.urls WHERE shorten_url = $1", token).
 		Scan(&url, &expirationTime)
 	if err != nil {
 		return nil, err
@@ -42,14 +42,14 @@ func (u *urlPostgresRepo) GetUrl(ctx context.Context, shortenUrl string) (*Url, 
 
 func (u *urlPostgresRepo) CreateShortenUrl(ctx context.Context, url *Url) error {
 	sql := `INSERT INTO public.urls 
-    			(token, shorten_url, url, expired_at)
+    			(token, url, expired_at)
 			VALUES 
-			    ($1, $2, $3, $4)`
-	_, err := u.pool.Exec(ctx, sql, url, url.Token, url.ShortenUrl, url.Url, url.ExpirationTime)
+			    ($1, $2, $3)`
+	_, err := u.pool.Exec(ctx, sql, url, url.Token, url.Url, url.ExpirationTime)
 	return err
 }
 
-func (u *urlPostgresRepo) DeleteShortenUrl(ctx context.Context, shortenUrl string) error {
-	_, err := u.pool.Exec(ctx, "DELETE FROM public.urls WHERE shorten_url = &1", shortenUrl)
+func (u *urlPostgresRepo) DeleteShortenUrl(ctx context.Context, token string) error {
+	_, err := u.pool.Exec(ctx, "DELETE FROM public.urls WHERE token = &1", token)
 	return err
 }

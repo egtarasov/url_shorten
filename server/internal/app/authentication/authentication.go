@@ -11,6 +11,6 @@ func Auth(
 	info *grpc.UnaryServerInfo,
 	handler grpc.UnaryHandler) (resp interface{}, err error) {
 
-	handler(ctx, req)
-	return nil, nil
+	resp, err = handler(ctx, req)
+	return resp, err
 }
