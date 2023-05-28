@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "service_proto";
+
+service ShortenerUrl {
+  rpc CreateShortenUrl(CreateShortenUrlRequest) returns (CreateShortenUrlResponse);
+}
+
+message CreateShortenUrlRequest{
+  string url = 1;
+}
+
+message CreateShortenUrlResponse{
+
+}
