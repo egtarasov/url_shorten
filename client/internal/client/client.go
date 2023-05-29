@@ -21,8 +21,10 @@ func NewClient(grpc url_service_proto.ShortenerUrlClient) Client {
 }
 
 func (c *client) HandleRedirect(w http.ResponseWriter, r *http.Request) {
+	log.Println("HandleRedirect ->")
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusBadRequest)
+		log.Println("invalid method")
 		return
 	}
 	token := r.URL.Path[1:]
@@ -30,24 +32,33 @@ func (c *client) HandleRedirect(w http.ResponseWriter, r *http.Request) {
 	resp, err := c.grpc.GetShortenUrl(r.Context(), &url_service_proto.GetShortenUrlRequest{ShortenUrl: token})
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		log.Println(err)
 		return
 	}
 	http.Redirect(w, r, resp.Url, http.StatusMovedPermanently)
 }
 
 func (c *client) HandleCreation(w http.ResponseWriter, r *http.Request) {
+	log.Println("HandleCreation ->")
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusBadRequest)
+		log.Println("invalid method")
 		return
 	}
 
 	url := r.URL.Query().Get("url")
-
-	if url == "" {
+	username := r.URL.Query().Get("username")
+	password := r.URL.Query().Get("password")
+	if url == "" || username == "" || password == "" {
 		w.WriteHeader(http.StatusBadRequest)
+		log.Println("no username, url or password")
 		return
 	}
-	resp, err := c.grpc.CreateShortenUrl(r.Context(), &url_service_proto.CreateShortenUrlRequest{Url: url})
+	resp, err := c.grpc.CreateShortenUrl(r.Context(), &url_service_proto.CreateShortenUrlRequest{
+		Url:      url,
+		UserName: username,
+		Password: password,
+	})
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		log.Print(err)

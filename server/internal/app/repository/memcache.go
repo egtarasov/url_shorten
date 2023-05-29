@@ -10,14 +10,14 @@ type urlCacheRepo struct {
 	cache *memcache.Client
 }
 
-func NewUrlCacheRepo() UrlRepo {
+func NewUrlCacheRepo() *urlCacheRepo {
 	cache := memcache.New("localhost:11211")
 	return &urlCacheRepo{
 		cache: cache,
 	}
 }
 
-func (u *urlCacheRepo) GetUrl(ctx context.Context, token string) (*Url, error) {
+func (u *urlCacheRepo) GetUrl(_ context.Context, token string) (*Url, error) {
 	url, err := u.cache.Get(token)
 	if err != nil {
 		return nil, err
@@ -30,7 +30,7 @@ func (u *urlCacheRepo) GetUrl(ctx context.Context, token string) (*Url, error) {
 	}, nil
 }
 
-func (u *urlCacheRepo) CreateShortenUrl(ctx context.Context, url *Url) error {
+func (u *urlCacheRepo) CreateShortenUrl(_ context.Context, url *Url) error {
 	err := u.cache.Set(&memcache.Item{
 		Key:        url.Token,
 		Value:      []byte(url.Url),
@@ -39,7 +39,7 @@ func (u *urlCacheRepo) CreateShortenUrl(ctx context.Context, url *Url) error {
 	return err
 }
 
-func (u *urlCacheRepo) DeleteShortenUrl(ctx context.Context, token string) error {
+func (u *urlCacheRepo) DeleteShortenUrl(_ context.Context, token string) error {
 	err := u.cache.Delete(token)
 	return err
 }
