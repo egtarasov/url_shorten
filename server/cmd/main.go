@@ -10,10 +10,13 @@ import (
 	"net"
 	"os"
 	"pr1/server/internal/app/authentication_service/auth_interceptor"
+	"pr1/server/internal/app/authentication_service/auth_service"
+	"pr1/server/internal/app/authentication_service/jwt_manager"
 	"pr1/server/internal/app/authentication_service/users"
 	"pr1/server/internal/app/repository"
 	"pr1/server/internal/app/service"
 	grpc_service "pr1/server/internal/app/url_service_proto"
+	"time"
 )
 
 const addUsers = false
@@ -22,14 +25,16 @@ func AddUsers(ctx context.Context, storage users.UserStorage) {
 	usersAdd := []struct {
 		username string
 		password string
+		role     string
 	}{
-		{"bubon", "12345"},
-		{"bob", "12345"},
-		{"buldozer", "12345"},
-		{"abc", "12345"},
+		{"unauthorized", "", ""},
+		{"bubon", "12345", "user"},
+		{"bob", "12345", "admin"},
+		{"buldozer", "12345", "user"},
+		{"abc", "12345", "user"},
 	}
 	for _, user := range usersAdd {
-		_ = storage.Add(ctx, user.username, user.password)
+		_ = storage.Add(ctx, user.username, user.password, user.role)
 	}
 }
 
@@ -55,10 +60,13 @@ func main() {
 	}
 	userStorage := users.NewUserStorage(pool)
 
-	authInterceptor := auth_interceptor.NewAuthInterceptor(userStorage)
+	duration, _ := time.ParseDuration(os.Getenv("TOKEN_DURATION"))
+	jwtManager := jwt_manager.NewJwtManager(os.Getenv("SECRET_KEY"), duration)
+
+	authService := auth_service.NewAuthService(userStorage, jwtManager)
+	authInterceptor := auth_interceptor.NewAuthInterceptor(jwtManager)
 
 	repo := repository.NewUrlCacheRepo()
-
 	urlShorterService := service.NewService(repo)
 
 	server := grpc.NewServer(
@@ -66,6 +74,7 @@ func main() {
 	)
 
 	grpc_service.RegisterShortenerUrlServer(server, urlShorterService)
+	grpc_service.RegisterAuthServiceServer(server, authService)
 
 	lsn, err := net.Listen("tcp", ":80")
 	if err != nil {

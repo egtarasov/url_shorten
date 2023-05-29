@@ -14,7 +14,8 @@
 CREATE TABLE users(
     id BIGSERIAL PRIMARY KEY,
     username varchar(30),
-    hashed_password varchar(100)
+    hashed_password varchar(100),
+    role varchar(100)
 );
 -- +goose StatementEnd
 

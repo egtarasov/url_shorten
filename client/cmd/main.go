@@ -16,20 +16,16 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	service, err := grpc_client.NewClient(ctx, target)
-	defer service.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
+	authService := grpc_client.NewAuthService(ctx, target)
 
-	cli := client.NewClient(service)
+	cli := client.NewClient(ctx, target, authService)
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/create", cli.HandleCreation)
 	mux.HandleFunc("/", cli.HandleRedirect)
 
 	log.Println("starting server at :1200")
-	if err = http.ListenAndServe(":1200", mux); err != nil {
+	if err := http.ListenAndServe(":1200", mux); err != nil {
 		log.Fatal(err)
 	}
 }
