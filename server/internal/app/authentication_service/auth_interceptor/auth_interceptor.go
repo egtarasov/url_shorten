@@ -2,22 +2,29 @@ package auth_interceptor
 
 import (
 	"context"
-	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"log"
-	"pr1/server/internal/app/authentication_service/users"
-	url_service_proto2 "pr1/server/internal/app/url_service_proto"
+	"pr1/server/internal/app/authentication_service/jwt_manager"
 )
 
 type AuthInterceptor struct {
-	storage users.UserStorage
+	accessibleRoles map[string][]string
+	jwtManager      jwt_manager.JWTManager
 }
 
-func NewAuthInterceptor(storage users.UserStorage) *AuthInterceptor {
+func Roles() map[string][]string {
+	return map[string][]string{
+		"/ShortenerUrl/CreateShortenUrl": {"user", "admin"},
+	}
+}
+
+func NewAuthInterceptor(jwtManager jwt_manager.JWTManager) *AuthInterceptor {
 	return &AuthInterceptor{
-		storage: storage,
+		accessibleRoles: Roles(),
+		jwtManager:      jwtManager,
 	}
 }
 
@@ -30,22 +37,39 @@ func (i *AuthInterceptor) Unary() grpc.UnaryServerInterceptor {
 	) (interface{}, error) {
 		log.Println("--> unary interceptor: ", info.FullMethod)
 
-		// Lack of 'roles' for user in authorization is compensated by hard coding
-		if info.FullMethod == "/ShortenerUrl/GetShortenUrl" {
-			return handler(ctx, req)
+		err := i.authorize(ctx, info.FullMethod)
+		if err != nil {
+			log.Println(err)
+			return nil, err
 		}
 
-		request, ok := req.(*url_service_proto2.CreateShortenUrlRequest)
-		if !ok {
-			return nil, status.Error(codes.InvalidArgument, "invalid request")
-		}
-		user, err := i.storage.GetByUsername(ctx, request.UserName)
-		if err != nil {
-			return nil, status.Error(codes.NotFound, fmt.Sprintf("cant find user in db: %v", err))
-		}
-		if !user.IsCorrectPassword(request.Password) {
-			return nil, status.Error(codes.Unauthenticated, "invalid username/password")
-		}
 		return handler(ctx, req)
 	}
+}
+
+func (i *AuthInterceptor) authorize(ctx context.Context, method string) error {
+	roles, ok := i.accessibleRoles[method]
+	if !ok {
+		return nil
+	}
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return status.Error(codes.NotFound, "metadata is not provided")
+	}
+	values, ok := md["authorization"]
+	if len(values) == 0 {
+		return status.Error(codes.NotFound, "authorization token is not provided")
+	}
+	accessToken := values[0]
+	userClaims, err := i.jwtManager.Verify(accessToken)
+	if err != nil {
+		return status.Errorf(codes.Unauthenticated, "access token is invalid: %v", err)
+	}
+
+	for _, v := range roles {
+		if v == userClaims.Role {
+			return nil
+		}
+	}
+	return status.Error(codes.PermissionDenied, "no permission granted")
 }

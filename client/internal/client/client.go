@@ -1,10 +1,18 @@
 package client
 
 import (
+	"context"
 	"fmt"
+	"google.golang.org/grpc"
 	"log"
 	"net/http"
+	"pr1/client/internal/grpc_client"
 	"pr1/client/internal/url_service_proto"
+	"time"
+)
+
+var (
+	refreshDuration = time.Minute * 5
 )
 
 type Client interface {
@@ -13,11 +21,23 @@ type Client interface {
 }
 
 type client struct {
-	grpc url_service_proto.ShortenerUrlClient
+	grpc        url_service_proto.ShortenerUrlClient
+	interceptor *grpc_client.AuthInterceptor
 }
 
-func NewClient(grpc url_service_proto.ShortenerUrlClient) Client {
-	return &client{grpc: grpc}
+func NewClient(ctx context.Context, target string, authService *grpc_client.AuthService) Client {
+	interceptor := grpc_client.NewAuthInterceptor(authService, refreshDuration)
+	conn, err := grpc.DialContext(
+		ctx,
+		target,
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(interceptor.Unary()))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	server := url_service_proto.NewShortenerUrlClient(conn)
+	return &client{grpc: server, interceptor: interceptor}
 }
 
 func (c *client) HandleRedirect(w http.ResponseWriter, r *http.Request) {
@@ -54,9 +74,11 @@ func (c *client) HandleCreation(w http.ResponseWriter, r *http.Request) {
 		log.Println("no username, url or password")
 		return
 	}
+	c.interceptor.SetCredentials(username, password)
+
 	resp, err := c.grpc.CreateShortenUrl(r.Context(), &url_service_proto.CreateShortenUrlRequest{
 		Url:      url,
-		UserName: username,
+		Username: username,
 		Password: password,
 	})
 	if err != nil {

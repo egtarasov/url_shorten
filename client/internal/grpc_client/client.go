@@ -6,34 +6,35 @@ import (
 	"pr1/client/internal/url_service_proto"
 )
 
-type client struct {
+type Client struct {
 	server url_service_proto.ShortenerUrlClient
 	conn   *grpc.ClientConn
 }
 
-func NewClient(ctx context.Context, target string) (*client, error) {
+func NewClient(ctx context.Context, authInterceptor *AuthInterceptor, target string) (*Client, error) {
 	conn, err := grpc.DialContext(
 		ctx,
 		target,
-		grpc.WithInsecure())
+		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(authInterceptor.Unary()))
 
 	if err != nil {
 		return nil, err
 	}
 	server := url_service_proto.NewShortenerUrlClient(conn)
-	return &client{server: server, conn: conn}, nil
+	return &Client{server: server, conn: conn}, nil
 }
 
-func (c *client) Close() {
+func (c *Client) Close() {
 	c.Close()
 }
 
-func (c *client) CreateShortenUrl(ctx context.Context, in *url_service_proto.CreateShortenUrlRequest, opts ...grpc.CallOption) (*url_service_proto.CreateShortenUrlResponse, error) {
+func (c *Client) CreateShortenUrl(ctx context.Context, in *url_service_proto.CreateShortenUrlRequest, opts ...grpc.CallOption) (*url_service_proto.CreateShortenUrlResponse, error) {
 	resp, err := c.server.CreateShortenUrl(ctx, in)
 	return resp, err
 }
 
-func (c *client) GetShortenUrl(ctx context.Context, in *url_service_proto.GetShortenUrlRequest, opts ...grpc.CallOption) (*url_service_proto.GetShortenUrlResponse, error) {
+func (c *Client) GetShortenUrl(ctx context.Context, in *url_service_proto.GetShortenUrlRequest, opts ...grpc.CallOption) (*url_service_proto.GetShortenUrlResponse, error) {
 	resp, err := c.server.GetShortenUrl(ctx, in)
 	return resp, err
 }

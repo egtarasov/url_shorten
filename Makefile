@@ -6,8 +6,7 @@ migration-init:
 
 .PHONY: migration-up
 migration-up:
-	goose -dir "./migrations" postgres "user=postgres password=postgres dbname=postgres host=localhost port=5432" up
-
+	goose -dir "./migrations" postgres "user=user password=password dbname=postgres host=localhost port=5432" up
 .PHONY: migration-down
 migration-down:
 	goose -dir "./migrations" postgres "user=postgres password=postgres dbname=postgres host=localhost port=5432" down
